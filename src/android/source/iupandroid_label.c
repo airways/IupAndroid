@@ -29,6 +29,10 @@
 #include "iupandroid_drv.h"
 #include <android/log.h>
 #include <jni.h>
+#include "iupandroid_jnimacros.h"
+#include "iupandroid_jnicacheglobals.h"
+
+IUPJNI_DECLARE_CLASS_STATIC(IupLabelHelper);
 
 typedef enum
 {
@@ -83,8 +87,10 @@ void iupdrvLabelAddBorders(Ihandle* ih, int *x, int *y)
 
 static int androidLabelSetTitleAttrib(Ihandle* ih, const char* value)
 {
+	IUPJNI_DECLARE_METHOD_ID_STATIC(IupLabelHelper_setText);
 	JNIEnv* jni_env = iupAndroid_GetEnvThreadSafe();
-	jclass java_class = (*jni_env)->FindClass(jni_env, "br/pucrio/tecgraf/iup/IupLabelHelper");
+	jclass java_class = IUPJNI_FindClass(IupLabelHelper, jni_env, "br/pucrio/tecgraf/iup/IupLabelHelper");
+
 	jmethodID method_id = NULL;
 	char* attribute_value = NULL;
 	jobject java_widget = NULL;
@@ -100,7 +106,7 @@ static int androidLabelSetTitleAttrib(Ihandle* ih, const char* value)
 	{
 		case IUPANDROIDLABELSUBTYPE_TEXT:
 		{
-			method_id = (*jni_env)->GetStaticMethodID(jni_env, java_class, "setText", "(JLandroid/widget/TextView;Ljava/lang/String;)V");
+			method_id = IUPJNI_GetStaticMethodID(IupLabelHelper_setText, jni_env, java_class, "setText", "(JLandroid/widget/TextView;Ljava/lang/String;)V");
 
 			jstring j_string = (*jni_env)->NewStringUTF(jni_env, value);
 
@@ -131,10 +137,11 @@ static int androidLabelSetTitleAttrib(Ihandle* ih, const char* value)
 
 static char* androidLabelGetTitleAttrib(Ihandle* ih)
 {
+	IUPJNI_DECLARE_METHOD_ID_STATIC(IupLabelHelper_getText);
 	char* value = NULL;
 
 	JNIEnv* jni_env = iupAndroid_GetEnvThreadSafe();
-	jclass java_class = (*jni_env)->FindClass(jni_env, "br/pucrio/tecgraf/iup/IupLabelHelper");
+	jclass java_class = IUPJNI_FindClass(IupLabelHelper, jni_env, "br/pucrio/tecgraf/iup/IupLabelHelper");
 	jmethodID method_id = NULL;
 
 
@@ -143,7 +150,7 @@ static char* androidLabelGetTitleAttrib(Ihandle* ih)
 	{
 		case IUPANDROIDLABELSUBTYPE_TEXT:
 		{
-			method_id = (*jni_env)->GetStaticMethodID(jni_env, java_class, "getText",
+			method_id = IUPJNI_GetStaticMethodID(IupLabelHelper_getText, jni_env, java_class, "getText",
 					"(JLandroid/widget/TextView;)Ljava/lang/String;");
 			jstring j_string = (jstring)(*jni_env)->CallStaticObjectMethod(jni_env, java_class, method_id,
 					(jlong)(intptr_t)ih,
@@ -180,16 +187,87 @@ static char* androidLabelGetTitleAttrib(Ihandle* ih)
 	return value;
 }
 
+static int androidLabelSetImageAttrib(Ihandle* ih, const char* value)
+{
+	
+	IUPJNI_DECLARE_METHOD_ID_STATIC(IupLabelHelper_setImage);
+	JNIEnv* jni_env = iupAndroid_GetEnvThreadSafe();
+	jclass java_class = IUPJNI_FindClass(IupLabelHelper, jni_env, "br/pucrio/tecgraf/iup/IupLabelHelper");
+	jmethodID method_id = NULL;
+	char* attribute_value = NULL;
+	jobject java_widget = NULL;
+
+	if(NULL == value)
+	{
+		return 0;
+	}
+
+
+	IupAndroidLabelSubType sub_type = androidTextGetSubType(ih);
+	switch(sub_type)
+	{
+		case IUPANDROIDLABELSUBTYPE_IMAGE:
+		{
+			char* name;
+			int make_inactive = 0;
+
+			if (iupdrvIsActive(ih))
+			{
+				make_inactive = 0;
+			}
+			else
+			{
+				name = iupAttribGet(ih, "IMINACTIVE");
+				if (!name)
+				{
+					make_inactive = 1;
+				}
+			}
+
+			// should return a Bitmap, with NewGlobalRef. Don't call DeleteGlobalRef directly. iupdrvImageDestroy should do that.
+			jobject the_bitmap = iupImageGetImage(value, ih, make_inactive);
+
+			method_id = IUPJNI_GetStaticMethodID(IupLabelHelper_setImage, jni_env, java_class, "setImage", "(JLandroid/widget/ImageView;Landroid/graphics/Bitmap;)V");
+
+			(*jni_env)->CallStaticVoidMethod(jni_env, java_class, method_id,
+					(jlong)(intptr_t) ih,
+					(jobject)ih->handle,
+					the_bitmap
+			);
+
+
+
+			break;
+		}
+
+
+		default:
+		{
+			break;
+		}
+	}
+
+	(*jni_env)->DeleteLocalRef(jni_env, java_class);
+
+	return 0; // not sure, 0 or 1?
+
+}
+
 static int androidLabelMapMethod(Ihandle* ih)
 {
+	IUPJNI_DECLARE_METHOD_ID_STATIC(IupLabelHelper_createLabelText);
+	IUPJNI_DECLARE_METHOD_ID_STATIC(IupLabelHelper_createLabelImage);
 	JNIEnv* jni_env = iupAndroid_GetEnvThreadSafe();
-	jclass java_class = (*jni_env)->FindClass(jni_env, "br/pucrio/tecgraf/iup/IupLabelHelper");
+	jclass java_class = IUPJNI_FindClass(IupLabelHelper, jni_env, "br/pucrio/tecgraf/iup/IupLabelHelper");
+
 	jmethodID method_id = NULL;
 //	char* attribute_value = NULL;
 	jobject java_widget = NULL;
 
 	char* value;
 	// using id because we may be using different types depending on the case
+	__android_log_print(ANDROID_LOG_ERROR, "androidLabelMapMethod", " start");
+	__android_log_print(ANDROID_LOG_INFO, "androidLabelMapMethod", " start");
 
 	value = iupAttribGet(ih, "SEPARATOR");
 	if (value)
@@ -210,27 +288,37 @@ static int androidLabelMapMethod(Ihandle* ih)
 	}
 	else
 	{
+			__android_log_print(ANDROID_LOG_ERROR, "androidLabelMapMethod", "before IMAGE");
+
 		value = iupAttribGet(ih, "IMAGE");
 		if (value)
 		{
 			ih->data->type = IUP_LABEL_IMAGE;
-			
+			/*
 			char *name;
 			int make_inactive = 0;
 			
 			if (iupdrvIsActive(ih))
-    name = iupAttribGet(ih, "IMAGE");
+			{
+				name = iupAttribGet(ih, "IMAGE");
+			}
 			else
 			{
-    name = iupAttribGet(ih, "IMINACTIVE");
-    if (!name)
-	{
-		name = iupAttribGet(ih, "IMAGE");
-		make_inactive = 1;
-	}
+				name = iupAttribGet(ih, "IMINACTIVE");
+				if (!name)
+				{
+					name = iupAttribGet(ih, "IMAGE");
+					make_inactive = 1;
+				}
 			}
-			
-			
+			*/
+			__android_log_print(ANDROID_LOG_ERROR, "androidLabelMapMethod", "IupLabelHelper_createLabelImage");
+		
+
+					method_id = IUPJNI_GetStaticMethodID(IupLabelHelper_createLabelImage, jni_env, java_class, "createLabelImage",
+															  "(J)Landroid/widget/ImageView;");
+					java_widget = (*jni_env)->CallStaticObjectMethod(jni_env, java_class, method_id,
+																	 (jlong) (intptr_t) ih);	
 
 
 		}
@@ -239,12 +327,13 @@ static int androidLabelMapMethod(Ihandle* ih)
 			ih->data->type = IUP_LABEL_TEXT;
 
 
+			__android_log_print(ANDROID_LOG_ERROR, "androidLabelMapMethod", "IupLabelHelper_createLabelText");
 
 
 
 
 
-					method_id = (*jni_env)->GetStaticMethodID(jni_env, java_class, "createLabelText",
+					method_id = IUPJNI_GetStaticMethodID(IupLabelHelper_createLabelText, jni_env, java_class, "createLabelText",
 															  "(J)Landroid/widget/TextView;");
 					java_widget = (*jni_env)->CallStaticObjectMethod(jni_env, java_class, method_id,
 																	 (jlong) (intptr_t) ih);
@@ -279,19 +368,14 @@ static int androidLabelMapMethod(Ihandle* ih)
 
 	(*jni_env)->DeleteLocalRef(jni_env, java_widget);
 
+	/* add to the parent, all Android controls must call this. */
 	iupAndroid_AddWidgetToParent(jni_env, ih);
 
 
-	
-	
-	/* add to the parent, all GTK controls must call this. */
-//	iupgtkAddToParent(ih);
-	
 	
 //	Ihandle* ih_parent = ih->parent;
 //	id parent_native_handle = ih_parent->handle;
 
-	iupAndroid_AddWidgetToParent(jni_env, ih);
 
 	
 	/* configure for DRAG&DROP of files */
@@ -313,8 +397,8 @@ static void androidLabelUnMapMethod(Ihandle* ih)
 		jmethodID method_id;
 		jni_env = iupAndroid_GetEnvThreadSafe();
 
-		java_class = (*jni_env)->FindClass(jni_env, "br/pucrio/tecgraf/iup/IupCommon");
-		method_id = (*jni_env)->GetStaticMethodID(jni_env, java_class, "removeWidgetFromParent", "(J)V");
+		java_class = IUPJNI_FindClass(IupCommon, jni_env, "br/pucrio/tecgraf/iup/IupCommon");
+		method_id = IUPJNI_GetStaticMethodID(IupCommon_removeWidgetFromParent, jni_env, java_class, "removeWidgetFromParent", "(J)V");
 		(*jni_env)->CallStaticVoidMethod(jni_env, java_class, method_id, (jlong)(intptr_t)ih);
 		(*jni_env)->DeleteLocalRef(jni_env, java_class);
 
@@ -327,8 +411,8 @@ static void androidLabelUnMapMethod(Ihandle* ih)
 void iupdrvLabelInitClass(Iclass* ic)
 {
   /* Driver Dependent Class functions */
-//  ic->Map = androidLabelMapMethod;
-//	ic->UnMap = androidLabelUnMapMethod;
+  ic->Map = androidLabelMapMethod;
+	ic->UnMap = androidLabelUnMapMethod;
 
 #if 0
 
@@ -351,7 +435,9 @@ void iupdrvLabelInitClass(Iclass* ic)
 #if 0
   /* IupLabel only */
   iupClassRegisterAttribute(ic, "ALIGNMENT", NULL, gtkLabelSetAlignmentAttrib, "ALEFT:ACENTER", NULL, IUPAF_NO_INHERIT);  /* force new default value */
-  iupClassRegisterAttribute(ic, "IMAGE", NULL, gtkLabelSetImageAttrib, NULL, NULL, IUPAF_IHANDLENAME|IUPAF_NO_DEFAULTVALUE|IUPAF_NO_INHERIT);
+#endif
+  iupClassRegisterAttribute(ic, "IMAGE", NULL, androidLabelSetImageAttrib, NULL, NULL, IUPAF_IHANDLENAME|IUPAF_NO_DEFAULTVALUE|IUPAF_NO_INHERIT);
+#if 0
   iupClassRegisterAttribute(ic, "PADDING", iupLabelGetPaddingAttrib, gtkLabelSetPaddingAttrib, IUPAF_SAMEASSYSTEM, "0x0", IUPAF_NOT_MAPPED);
 
   /* IupLabel GTK and Motif only */

@@ -11,7 +11,7 @@ buildscript {
 		google()
 	}
 	dependencies {
-		classpath 'com.android.tools.build:gradle:3.1.1'
+		classpath 'com.android.tools.build:gradle:3.4.1'
 
 		// NOTE: Do not place your application dependencies here; they belong
 		// in the individual module build.gradle files
@@ -30,13 +30,15 @@ task clean(type: Delete) {
 }
 
 ext {
-	compileSdkVersion = 26
-	minSdkVersion = 14
-	targetSdkVersion = 26 // Make sure to update appCompat
+	compileSdkVersion = 28
+	minSdkVersion = 22
+	targetSdkVersion = 28 // Make sure to update appCompat
 	versionCode = 1
 	versionName = "1.0"
 	abiFilters = fetchAbiFilters()
-	appCompat = 'com.android.support:appcompat-v7:26.1.0' // Note: This version must be in sync with the targetSdkVersion
+	appCompat = 'com.android.support:appcompat-v7:27.1.1' // Note: This version must be in sync with the targetSdkVersion
+//	constraintSupport = 'com.android.support.constraint:constraint-layout:1.1.3'
+	designSupport = 'com.android.support:design:27.1.1'
 }
 
 
